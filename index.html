@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Curb Dispute Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: version tabs; the Curb phone (four owner screens) beside an "under the hood" panel showing the agent pipeline and its real step log */
+:root{
+  --bg:#EFEDF6; --surface:#FFFFFF; --sunk:#F6F5FA; --line:#DAD6E8; --ink:#17142A; --muted:#5E5A72;
+  --curb:#4A2C9E; --curb-deep:#2C1868; --curb-soft:#E7E0FA; --sun:#F7CE2E; --sun-ink:#1E1600; --sun-soft:#FDF2C7;
+  --ok:#1D7A4E; --ok-soft:#D9EFE3; --warn:#9A6A00; --warn-soft:#FBEFC8; --bad:#C2361F; --bad-soft:#F8DED8;
+  --app:#F6F4FB; --card:#FFFFFF; --sh:0 1px 2px rgba(23,20,42,.06),0 8px 22px -12px rgba(23,20,42,.3);
+  --f-head:"Space Grotesk","Public Sans",system-ui,sans-serif; --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#110F1C; --surface:#1B1830; --sunk:#151226; --line:#2F2A48; --ink:#ECEAF6; --muted:#A9A4C2;
+  --curb-soft:#2A2150; --sun-soft:#3A3010; --ok:#5CC995; --ok-soft:#173327; --warn:#F2C94C; --warn-soft:#3A3010; --bad:#F07B66; --bad-soft:#3E1F19;
+  --app:#0E0C18; --card:#1C1930; --sh:0 0 0 1px rgba(255,255,255,.05),0 8px 22px -12px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#110F1C; --surface:#1B1830; --sunk:#151226; --line:#2F2A48; --ink:#ECEAF6; --muted:#A9A4C2;
+  --curb-soft:#2A2150; --sun-soft:#3A3010; --ok:#5CC995; --ok-soft:#173327; --warn:#F2C94C; --warn-soft:#3A3010; --bad:#F07B66; --bad-soft:#3E1F19;
+  --app:#0E0C18; --card:#1C1930; --sh:0 0 0 1px rgba(255,255,255,.05),0 8px 22px -12px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:var(--f-head);margin:0;line-height:1.05;text-wrap:balance}
+p{margin:0}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.k{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:20px 60px;display:grid;gap:18px}
+.head{display:grid;gap:6px}
+.head h1{font-size:clamp(30px,5vw,50px);font-weight:700}
+.head p{color:var(--muted);max-width:72ch}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.tabs{grid-template-columns:1fr}}
+.tabs button{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:10px 14px;text-align:left;cursor:pointer;display:grid;gap:2px}
+.tabs button b{font-family:var(--f-head);font-size:17px}
+.tabs button span{font-size:12.5px;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--curb);border-color:var(--curb);color:#FFFFFF}
+.tabs button[aria-selected="true"] span,.tabs button[aria-selected="true"] .k{color:#FFFFFF;opacity:.8}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar button{border:1.5px solid var(--ink);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:700;font-size:13.5px;cursor:pointer}
+.bar .status{font-size:13px;color:var(--muted)}
+.stage{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:start}
+@media (max-width:900px){.stage{grid-template-columns:1fr}.pcol{justify-self:center}}
+.pcol{position:sticky;top:12px;display:grid;gap:10px;justify-items:center}
+@media (max-width:900px){.pcol{position:static}}
+.steps4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:370px;max-width:100%}
+.steps4 button{border:0;border-radius:10px;padding:6px 4px;font-size:11px;font-weight:700;background:var(--surface);cursor:pointer;color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
+.steps4 button[aria-current="step"]{background:var(--ink);color:var(--bg);box-shadow:none}
+.steps4 button:disabled{opacity:.4;cursor:not-allowed}
+.phone{width:370px;max-width:100%;height:760px;background:#0E0C16;border-radius:46px;padding:11px;box-shadow:0 30px 60px -30px rgba(0,0,0,.5)}
+.screen{height:100%;background:var(--app);border-radius:36px;overflow:hidden;display:flex;flex-direction:column;position:relative;font-size:13.5px}
+.sbar{display:flex;justify-content:space-between;padding:12px 26px 6px;font-family:var(--f-mono);font-size:12px;font-weight:600}
+.ahead{background:repeating-linear-gradient(-45deg,rgba(255,255,255,.05) 0 10px,transparent 10px 20px),linear-gradient(135deg,var(--curb),var(--curb-deep));color:#FFFFFF;padding:12px 16px 14px;display:grid;gap:6px}
+.ahead .r1{display:flex;align-items:center;gap:8px}
+.shield{width:36px;height:36px;border-radius:10px;background:var(--sun);display:grid;place-items:center;color:#2C1868;flex:none}
+.ahead .nm{font-family:var(--f-head);font-weight:700;font-size:28px;flex:1}
+.hb{border:1.5px solid rgba(255,255,255,.9);background:transparent;color:#FFFFFF;border-radius:10px;padding:5px 9px;font-weight:800;font-size:12.5px}
+.hb.on{background:#FFFFFF;color:#1A1530}
+.hb.y{background:var(--sun);color:var(--sun-ink);border-color:var(--sun)}
+.ahead .r2{display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px;flex-wrap:wrap}
+.tag{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;border:1.5px dashed rgba(255,255,255,.9);border-radius:5px;padding:1px 6px}
+.body{flex:1;overflow-y:auto;padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.body > *{flex-shrink:0}
+.foot{padding:10px 14px 14px;border-top:1px solid var(--line);display:grid;gap:6px;background:var(--app)}
+.foot p{font-size:12px;color:var(--muted);text-align:center}
+.pb{height:48px;border-radius:14px;border:0;background:var(--curb);color:#FFFFFF;font-weight:800;font-size:15px;cursor:pointer;width:100%}
+.pb:disabled{opacity:.4;cursor:not-allowed}
+.pb.line{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.title{font-family:var(--f-head);font-weight:700;font-size:22px}
+.card{background:var(--card);border-radius:18px;padding:13px 14px;box-shadow:var(--sh);display:grid;gap:8px}
+.f{display:grid;gap:3px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.f input,.f textarea,.f select{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 10px;font-size:13.5px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink);width:100%}
+.f textarea{resize:vertical;line-height:1.45}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stake{border-radius:20px;padding:15px;color:#FFFFFF;background:repeating-linear-gradient(-45deg,rgba(255,255,255,.06) 0 10px,transparent 10px 20px),linear-gradient(135deg,var(--curb),var(--curb-deep));display:grid;gap:3px}
+.stake .amt{font-family:var(--f-head);font-weight:700;font-size:50px;line-height:.9}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;border-radius:9px;padding:3px 8px;border:1.5px solid currentColor;white-space:nowrap}
+.c-ok{color:var(--ok);background:var(--ok-soft)}.c-warn{color:var(--warn);background:var(--warn-soft)}.c-bad{color:var(--bad);background:var(--bad-soft)}.c-mut{color:var(--muted);background:var(--sunk)}
+.cl{display:grid}
+.cl > div{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cl > div:last-child{border-bottom:0}
+.dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900}
+.d-ok{background:var(--ok);color:#FFFFFF}.d-no{box-shadow:inset 0 0 0 2px var(--bad);color:var(--bad)}
+.sm{font-size:12px;color:var(--muted)}
+.sent{background:var(--card);border-radius:16px;padding:12px;box-shadow:var(--sh);display:grid;gap:6px;border-left:4px solid var(--line)}
+.sent.ok{border-left-color:var(--ok)}.sent.warn{border-left-color:var(--warn)}.sent.bad{border-left-color:var(--bad)}
+.sent .tx{font-size:13.5px;line-height:1.5}
+.sent .es{font-size:12.5px;color:var(--muted);font-style:italic;border-top:1px dashed var(--line);padding-top:6px}
+.sent .why{font-size:12px}
+.ledger{display:flex;gap:4px;flex-wrap:wrap}
+.ledger span{font-family:var(--f-mono);font-size:10.5px;font-weight:600;background:var(--curb-soft);color:var(--curb);border-radius:6px;padding:2px 6px}
+:root[data-theme="dark"] .ledger span{color:#C9B8FF}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ledger span{color:#C9B8FF}}
+.cf{display:flex;gap:9px;align-items:flex-start;cursor:pointer;font-size:12.5px;font-weight:700}
+.cf input{width:20px;height:20px;accent-color:var(--ok);flex:none;margin:0}
+.note{border-radius:12px;padding:10px 12px;font-size:12.5px}
+.n-warn{background:var(--warn-soft)}.n-bad{background:var(--bad-soft);color:var(--bad)}.n-ok{background:var(--ok-soft);color:var(--ok);font-weight:600}.n-mut{background:var(--sunk);color:var(--muted)}
+.prog{display:grid;gap:8px}
+.prog > div{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:var(--sh);font-size:13px}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--curb);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* hood */
+.hood{display:grid;gap:14px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:10px;min-width:0}
+.panel h2{font-size:22px}
+.pipe{display:flex;gap:6px;flex-wrap:wrap;align-items:stretch}
+.node{flex:1;min-width:110px;border:1.5px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:3px;align-content:start;font-size:12.5px;background:var(--sunk)}
+.node b{font-family:var(--f-head);font-size:15px}
+.node.ag{border-color:var(--curb)}.node.code{border-style:dashed}.node.hu{border:2px dashed var(--bad)}
+.pipe .ar{align-self:center;color:var(--muted);font-weight:800}
+.log{list-style:none;margin:0;padding:0;font-size:13px}
+.log li{display:grid;grid-template-columns:50px 1fr;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.log li:last-child{border-bottom:0}
+.log .t{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.log .tl{font-family:var(--f-mono);font-size:12px;font-weight:600;color:var(--curb)}
+.log .er .tl{color:var(--bad)}
+.log .nt{font-size:12.5px;color:var(--muted)}
+.met{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.met div{background:var(--sunk);border-radius:10px;padding:10px;display:grid}
+.met b{font-family:var(--f-head);font-size:28px;line-height:1}
+.met span{font-size:11.5px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13.5px;padding:10px;border:1px dashed var(--line);border-radius:10px}
+table.spec{border-collapse:collapse;width:100%;font-size:13px}
+table.spec td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.spec td:first-child{font-weight:700;width:26%}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <span class="k">Team Solar · Curb · Appendix G agent</span>
+    <h1>Curb dispute agent, three builds</h1>
+    <p>The same ticket, run through three versions of the agent. Agent 1 only drafts. Agent 2 adds a sceptical checker. Agent 3 is the full Curb agent: drafter, code check, checker, one revision, a claims ledger, a reading copy in the owner’s language, and confirmation sentence by sentence.</p>
+  </header>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="bar"><button type="button" id="runBtn">Run on Claude</button><button type="button" id="replayBtn">Show recorded run</button><span class="status" id="status"></span></div>
+  <div class="stage">
+    <div class="pcol">
+      <div class="steps4" id="steps4"></div>
+      <div class="phone"><div class="screen" id="screen"></div></div>
+    </div>
+    <div class="hood" id="hood"></div>
+  </div>
+</div>
+
+<script src="runs.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+const W=ms=>new Promise(r=>setTimeout(r,ms));
+const TODAY='2026-10-13';
+
+/* ---------- the case (editable in screen 1) ---------- */
+const CASE={
+ ticket:{number:'4483 920 117',plate:'GCR 4471 (NY, COM)',violation:'Commercial meter zone, no paid receipt',issued:'2026-10-01 12:10 PM',location:'W 45 St & 6 Ave, Manhattan',amount:'$65',respond_by:'2026-10-31'},
+ owner_account:"Meter on 45th was dead, blank screen. I paid on the ParkNYC app at 11:52 for two hours. Ticket came at 12:10. I'm pretty sure I also reported the broken meter to 311 that day.",
+ evidence:[{id:'E1',label:'Photo of the meter',note:'Screen is blank',have:true},{id:'E2',label:'ParkNYC app receipt',note:'Paid 11:52 AM, 2 hours',have:true},{id:'E3',label:'Photo of the meter number',note:'',have:false},{id:'E4',label:'311 complaint number',note:'',have:false}],
+ owner_language:'Spanish'
+};
+const caseText=()=>JSON.stringify(CASE);
+
+/* ---------- prompts (the exact instructions each agent gets) ---------- */
+const P={
+ drafter1:()=>`You are the Curb dispute drafter, an assistant inside Curb, an app for NYC food truck and halal cart owners. Today is ${TODAY}. You help an owner contest a parking ticket. The owner reviews every sentence and submits it themselves; you never file anything. This is not legal advice.\n\nCase:\n${caseText()}\n\nTasks:\n1. Say whether the ticket can still be contested and how many days are left before respond_by.\n2. Build an evidence checklist for this violation: each item, whether the owner has it (by evidence id), and why it matters.\n3. Draft the dispute statement in English, first person from the owner, 3 to 6 sentences, as a list of sentences. For each sentence give its source: "ticket", "account", or an evidence id.\n\nReply with only JSON:\n{"eligible":true,"days_left":0,"checklist":[{"item":"...","evidence_id":"E1","have":true,"why":"..."}],"sentences":[{"n":1,"text":"...","source":"ticket"}]}`,
+ checker:(sents)=>`You are the sceptical Checker in Curb, an app that helps NYC food truck owners contest parking tickets. You did not write the draft below. Your job is to find anything in it that is not supported.\n\nCase:\n${caseText()}\n\nDraft sentences:\n${JSON.stringify(sents.map(s=>({n:s.n,text:s.text})))}\n\nFor each sentence decide:\n- "supported": every fact in it is backed by the ticket or by evidence the owner HAS (have: true);\n- "owner_word": it rests only on the owner's account, with no evidence behind it, but it is phrased as the owner's own statement;\n- "unsupported": it states something as fact that no evidence the owner has backs up, or that appears nowhere in the case (invented).\nList what each sentence rests on (ticket, account, evidence ids) and give a short reason. Do not rewrite anything.\n\nReply with only JSON:\n{"checks":[{"n":1,"verdict":"supported","rests_on":["ticket"],"reason":"..."}]}`,
+ drafter3:()=>`You are the Drafter in Curb, an app for NYC food truck and halal cart owners. Today is ${TODAY}. You help an owner contest a parking ticket. A separate sceptical Checker will review every sentence you write against the evidence, and the owner confirms each sentence and submits it themselves. You never file anything. This is not legal advice.\n\nCase:\n${caseText()}\n\nRules:\n- Only state something as fact if the ticket or evidence the owner HAS supports it.\n- If something rests only on the owner's word with no evidence, either leave it out or phrase it clearly as the owner's own statement; never present it as proven.\n- Never invent numbers, times, places, reference numbers or events.\n- Build a claims ledger: for every sentence, list exactly what it rests on (ticket, account, and/or evidence ids).\n\nTasks:\n1. Say whether the ticket can still be contested and how many days are left before respond_by.\n2. Build an evidence checklist for this violation: each item, whether the owner has it (by evidence id), and why it matters.\n3. Draft the statement in English, first person, 3 to 6 sentences, each with its claims-ledger entry.\n\nReply with only JSON:\n{"eligible":true,"days_left":0,"checklist":[{"item":"...","evidence_id":"E1","have":true,"why":"..."}],"sentences":[{"n":1,"text":"...","rests_on":["ticket"]}]}`,
+ reviser:(sents,flags)=>`You are the Drafter in Curb. The sceptical Checker flagged some of your sentences. Revise ONLY the flagged sentences so that each is either backed by evidence the owner has, or clearly phrased as the owner's own statement, or removed. Never invent anything.\n\nCase:\n${caseText()}\n\nYour draft:\n${JSON.stringify(sents.map(s=>({n:s.n,text:s.text,rests_on:s.rests_on})))}\n\nChecker flags:\n${JSON.stringify(flags)}\n\nReply with only JSON: {"sentences":[{"n":1,"text":"...","rests_on":["ticket"],"changed":false,"change_note":""}]} with every sentence, in order (use "text":"" to remove one).`,
+ translator:(sents)=>`You translate for Curb, an app for NYC food truck owners. Write a plain, friendly reading copy in ${CASE.owner_language} of each English sentence below, so the owner understands exactly what they are confirming. Keep every number, time, date and name exactly as written. Do not add or remove anything.\n\n${JSON.stringify(sents.map(s=>({n:s.n,text:s.text})))}\n\nReply with only JSON: {"reading_copy":[{"n":1,"text":"..."}]}`
+};
+
+/* ---------- code check (Agent 3): every time, amount and long number must appear in the case ---------- */
+function codeCheck(sents){
+  const corp=norm(caseText()), digits=corp.replace(/[^0-9]/g,''), out=[];
+  sents.forEach(s=>{const t=s.text||'';const toks=[...new Set([...(t.match(/\b\d{1,2}:\d{2}\b/g)||[]),...(t.match(/\$\d+/g)||[]),...(t.match(/\d[\d\- ]{4,}\d/g)||[])])];
+    toks.forEach(x=>{const ok=(/^\$/.test(x)||/:/.test(x))?corp.includes(x.toLowerCase()):digits.includes(x.replace(/[^0-9]/g,''));if(!ok)out.push({n:s.n,token:x});});});
+  return out;
+}
+
+/* ---------- versions ---------- */
+const V={
+ 1:{name:'Agent 1 · Drafter',sub:'One agent drafts. No checks.',nodes:[['Agent','Drafter','Checklist + statement','ag'],['Human','Owner','Confirms each sentence','hu']],
+    spec:[['What changed','Baseline: a single drafting agent.'],['Checks','None. Whatever the drafter writes goes straight to the owner.'],['Language','English only.']]},
+ 2:{name:'Agent 2 · Drafter + Checker',sub:'A sceptical checker reviews every sentence.',nodes:[['Agent','Drafter','Same as Agent 1','ag'],['Agent','Checker','Rates each sentence: supported, owner’s word, unsupported','ag'],['Human','Owner','Sees the flags, confirms each sentence','hu']],
+    spec:[['What changed','Added a second agent that did not write the draft and only looks for unsupported claims.'],['Checks','Checker flags; nothing is fixed automatically.'],['Language','English only.']]},
+ 3:{name:'Agent 3 · Curb agent',sub:'Checker, revision, ledger, Spanish copy.',nodes:[['Agent','Drafter','Stricter rules + claims ledger','ag'],['Code','Number check','Times, amounts, numbers must be in the case','code'],['Agent','Checker','Sentence by sentence','ag'],['Agent','Revise once','Fix only flagged sentences; halt and log if still disputed','ag'],['Agent','Reading copy','Owner’s language','ag'],['Human','Owner','Confirms each sentence','hu']],
+    spec:[['What changed','Drafter told never to present the owner’s word as proven; code check on numbers; checker → one revision → re-check; disagreements halt and are logged; claims ledger; Spanish reading copy.'],['Checks','Code + checker, twice.'],['Language','English statement, Spanish reading copy.']]}
+};
+
+/* ---------- recorded runs (filled from runs.js if present) ---------- */
+const REC=window.CURB_RUNS||{};
+let ver=+(new URLSearchParams(location.search).get('agent')||1);
+let scr=new URLSearchParams(location.search).get('screen')||'entry';
+const S={1:null,2:null,3:null}; // results per version
+const CONF={1:{},2:{},3:{}};
+let sample=null, running=false;
+
+/* ---------- pipelines ---------- */
+async function callJSON(name,prompt,ctx){
+  const t0=performance.now();
+  let out;
+  if(ctx.replay){const r=ctx.replay[name];await W(ctx.fast?60:Math.min(r.ms,2500));out=r.out;ctx.ms+=r.ms;}
+  else{out=await sample.json(prompt);ctx.ms+=performance.now()-t0;}
+  return out;
+}
+async function pipeline(v,ctx){
+  const R={log:[],checks:null,flags:[],codeFlags:[],halts:[],reading:null,secs:0};
+  const L=(tool,note,err)=>{R.log.push({t:(ctx.ms/1000).toFixed(1)+'s',tool,note,err});draw();};
+  S[v]=R; R.running=true; draw();
+  const d=await callJSON(v===3?'drafter3':'drafter1',v===3?P.drafter3():P.drafter1(),ctx);
+  R.eligible=d.eligible;R.days_left=d.days_left;R.checklist=d.checklist||[];R.sentences=(d.sentences||[]).map(s=>({...s,rests_on:s.rests_on||(s.source?[s.source]:[])}));
+  L('drafter',`${R.checklist.length} checklist items, ${R.sentences.length} sentences`);
+  if(v>=2){
+    if(v===3){R.codeFlags=codeCheck(R.sentences);L('number check',R.codeFlags.length?`Not in the case: ${R.codeFlags.map(f=>'“'+f.token+'” (sentence '+f.n+')').join(', ')}`:'Every time, amount and number appears in the case',R.codeFlags.length>0);}
+    let c=await callJSON('checker',P.checker(R.sentences),ctx);R.checks=c.checks||[];
+    const bad=R.checks.filter(x=>x.verdict==='unsupported');
+    L('checker',`${R.checks.filter(x=>x.verdict==='supported').length} supported · ${R.checks.filter(x=>x.verdict==='owner_word').length} owner’s word only · ${bad.length} unsupported`,bad.length>0);
+    if(v===3&&(bad.length||R.codeFlags.length)){
+      const flags=[...bad.map(b=>({n:b.n,reason:b.reason})),...R.codeFlags.map(f=>({n:f.n,reason:'Number not found in the case: '+f.token}))];
+      const r=await callJSON('reviser',P.reviser(R.sentences,flags),ctx);
+      R.revised=(r.sentences||[]).filter(s=>s.changed);R.sentences=(r.sentences||[]).filter(s=>String(s.text||'').trim());
+      L('revise',`${R.revised.length} sentence(s) revised: ${R.revised.map(s=>s.change_note).filter(Boolean).join(' · ')||'—'}`);
+      c=await callJSON('checker2',P.checker(R.sentences),ctx);R.checks=c.checks||[];
+      const still=R.checks.filter(x=>x.verdict==='unsupported');
+      if(still.length){R.halts=still;L('halt',`Drafter and checker still disagree on ${still.map(x=>'sentence '+x.n).join(', ')}. Logged for the owner; not smoothed over.`,true);}
+      else L('re-check','Checker now agrees with every sentence');
+    }
+    if(v===3){const tr=await callJSON('translator',P.translator(R.sentences),ctx);R.reading=tr.reading_copy||[];L('reading copy',`${CASE.owner_language} reading copy for ${R.reading.length} sentences`);}
+  }
+  R.secs=ctx.ms/1000;R.running=false;L('done','Ready for the owner to confirm, sentence by sentence.');
+}
+
+/* ---------- render ---------- */
+const VERD={supported:['c-ok','Supported','ok'],owner_word:['c-warn','Owner’s word only','warn'],unsupported:['c-bad','Unsupported','bad']};
+const daysLeft=()=>Math.round((new Date(CASE.ticket.respond_by+'T12:00')-new Date(TODAY+'T12:00'))/864e5);
+const SCREENS=[['entry','1 · Ticket'],['check','2 · Evidence'],['draft','3 · Draft'],['confirm','4 · Confirm']];
+function phone(){
+  const R=S[ver];
+  const head=`<div class="sbar"><span>10:38</span><span>●●● 5G</span></div><div class="ahead"><div class="r1"><span class="shield"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><span class="nm">Curb</span><span class="hb ${ver===3?'':'on'}">EN</span><span class="hb ${ver===3?'on':''}">ES</span><span class="hb y">Help</span></div><div class="r2"><span>Golden Crunch · GCR 4471</span><span class="tag">SAMPLE DATA</span></div></div>`;
+  let body='',foot='';
+  if(R&&R.running){body=`<span class="title">Curb is working</span><div class="prog">${R.log.map(l=>`<div><span class="dot ${l.err?'d-no':'d-ok'}">${l.err?'!':'✓'}</span><div><b>${esc(l.tool)}</b><br><span class="sm">${esc(l.note)}</span></div></div>`).join('')}<div><span class="spin"></span><div><b>Thinking…</b><br><span class="sm">Running on Claude</span></div></div></div>`;}
+  else if(scr==='entry'){
+    const t=CASE.ticket;
+    body=`<span class="title">Add a ticket</span><div class="card">
+     <div class="g2"><label class="f">Ticket #<input id="i-number" value="${esc(t.number)}"></label><label class="f">Amount<input id="i-amount" value="${esc(t.amount)}"></label></div>
+     <label class="f">Violation<input id="i-violation" value="${esc(t.violation)}"></label>
+     <div class="g2"><label class="f">Issued<input id="i-issued" value="${esc(t.issued)}"></label><label class="f">Respond by<input id="i-respond" value="${esc(t.respond_by)}"></label></div>
+     <label class="f">Where<input id="i-location" value="${esc(t.location)}"></label></div>
+     <div class="card"><label class="f">What happened, in your words<textarea id="i-account" rows="4">${esc(CASE.owner_account)}</textarea></label></div>
+     <div class="card"><span class="f">Photos and receipts</span>${CASE.evidence.map(e=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span><b class="mono">${e.id}</b> ${esc(e.label)}${e.note?` <span class="sm">· ${esc(e.note)}</span>`:''}</span><span class="chip ${e.have?'c-ok':'c-mut'}">${e.have?'Added':'Missing'}</span></div>`).join('')}</div>`;
+    foot=`<button class="pb" type="button" data-go="check" ${R?'':'disabled'}>Check my ticket</button><p>${R?'Results ready from this version’s run.':'Run the agent (above) to continue.'}</p>`;
+  } else if(!R){body=`<p class="empty">Run this version first.</p>`;}
+  else if(scr==='check'){
+    body=`<div class="stake"><span class="k" style="color:#FFFFFF;opacity:.8">At stake</span><span class="amt">${esc(CASE.ticket.amount)}</span><b>${R.eligible?'You can still contest this':'Too late to contest'} · ${R.days_left??daysLeft()} days left</b></div>
+     <span class="title">Evidence checklist</span><div class="card cl">${R.checklist.map(c=>`<div><span class="dot ${c.have?'d-ok':'d-no'}">${c.have?'✓':'!'}</span><div><b>${esc(c.item)}</b>${c.evidence_id?` <span class="mono sm">${esc(c.evidence_id)}</span>`:''}<br><span class="sm">${esc(c.why)}</span></div></div>`).join('')}</div>`;
+    foot=`<button class="pb" type="button" data-go="draft">See the draft</button>`;
+  } else if(scr==='draft'){
+    body=`<span class="title">Your draft statement</span>${ver===1?'<div class="note n-mut">Agent 1 has no checker. Nothing below has been reviewed.</div>':''}
+     ${R.halts&&R.halts.length?`<div class="note n-bad"><b>Halted:</b> drafter and checker still disagree. Read the red sentence carefully.</div>`:''}
+     ${R.sentences.map(s=>{const c=R.checks&&R.checks.find(x=>+x.n===+s.n);const v=c?VERD[c.verdict]||VERD.supported:null;const rev=R.revised&&R.revised.find(x=>+x.n===+s.n);
+       return `<div class="sent ${v?v[2]:''}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="mono sm">Sentence ${s.n}</span>${v?`<span class="chip ${v[0]}">${v[1]}</span>`:''}</div><span class="tx">${esc(s.text)}</span>
+       ${ver===3?`<div class="ledger">${(s.rests_on||[]).map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}
+       ${c&&c.verdict!=='supported'?`<span class="why" style="color:var(--${v[2]==='bad'?'bad':'warn'})">Checker: ${esc(c.reason)}</span>`:''}${rev?`<span class="sm">Revised after a checker flag${rev.change_note?': '+esc(rev.change_note):''}</span>`:''}</div>`;}).join('')}`;
+    foot=`<button class="pb" type="button" data-go="confirm">Confirm sentence by sentence</button>`;
+  } else if(scr==='confirm'){
+    const all=R.sentences.every(s=>CONF[ver][s.n]);
+    body=`<span class="title">Confirm each sentence</span><div class="note n-mut">You are the one submitting this. Tick a sentence only if it is true. Not legal advice.</div>
+     ${R.sentences.map(s=>{const c=R.checks&&R.checks.find(x=>+x.n===+s.n);const v=c?VERD[c.verdict]:null;const es=R.reading&&R.reading.find(x=>+x.n===+s.n);
+       return `<div class="sent ${v?v[2]:''}"><span class="tx">${esc(s.text)}</span>${es?`<span class="es">${esc(es.text)}</span>`:''}${v&&c.verdict!=='supported'?`<span class="chip ${v[0]}" style="justify-self:start">${v[1]}</span>`:''}
+       <label class="cf"><input type="checkbox" data-conf="${s.n}" ${CONF[ver][s.n]?'checked':''}> ${ver===3?'Esto es verdad · This is true':'This is true'}</label></div>`;}).join('')}`;
+    foot=`<button class="pb" type="button" data-copy ${all?'':'disabled'}>${all?'Copy statement to submit':'Confirm every sentence to continue'}</button><p>Curb never files for you.</p>`;
+  }
+  return head+`<div class="body" id="pbody">${body}</div>${foot?`<div class="foot">${foot}</div>`:''}`;
+}
+function hood(){
+  const v=V[ver],R=S[ver];
+  return `<section class="panel"><span class="k">${esc(v.name)}</span><h2>${esc(v.sub)}</h2>
+   <div class="pipe">${v.nodes.map(([k,b,t,c])=>`<div class="node ${c}"><span class="k">${k}</span><b>${b}</b><span>${t}</span></div>`).join('<span class="ar">→</span>')}</div>
+   <table class="spec">${v.spec.map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table></section>
+  <section class="panel"><h2>Step log</h2>${R&&R.log.length?`<ol class="log">${R.log.map(l=>`<li class="${l.err?'er':''}"><span class="t">${l.t}</span><span><span class="tl">${esc(l.tool)}</span><br><span class="nt">${esc(l.note)}</span></span></li>`).join('')}</ol>`:'<p class="empty">Run this version to see each step.</p>'}
+   <div class="met"><div><b class="mono">${R&&R.checks?R.checks.filter(x=>x.verdict!=='supported').length:'—'}</b><span>Sentences flagged by the checker</span></div><div><b class="mono">${R&&R.revised?R.revised.length:'—'}</b><span>Sentences revised</span></div><div><b class="mono">${R&&R.secs?Math.round(R.secs)+'s':'—'}</b><span>Time on Claude</span></div></div></section>
+  ${REC.meta?`<section class="panel"><span class="k">About the recorded runs</span><p class="sm">${esc(REC.meta)}</p></section>`:''}`;
+}
+function draw(){
+  $('#tabs').innerHTML=[1,2,3].map(n=>`<button role="tab" type="button" data-v="${n}" aria-selected="${n===ver}"><span class="k">Agent ${n}</span><b>${esc(V[n].name.split('· ')[1])}</b><span>${esc(V[n].sub)}</span></button>`).join('');
+  $('#steps4').innerHTML=SCREENS.map(([k,l])=>`<button type="button" data-go="${k}" aria-current="${k===scr?'step':'false'}" ${k!=='entry'&&!S[ver]?'disabled':''}>${l}</button>`).join('');
+  $('#screen').innerHTML=phone(); $('#hood').innerHTML=hood();
+}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-v],[data-go],[data-copy]');if(!t)return;
+  if(t.dataset.v&&!running){ver=+t.dataset.v;scr='entry';draw();return;}
+  if(t.dataset.go){scr=t.dataset.go;draw();return;}
+  if(t.dataset.copy!=null){try{await navigator.clipboard.writeText(S[ver].sentences.map(s=>s.text).join(' '));t.textContent='Copied';}catch(err){t.textContent='Copy blocked by the browser';}}
+});
+document.addEventListener('change',e=>{const c=e.target.closest('[data-conf]');if(c){CONF[ver][c.dataset.conf]=c.checked;draw();}});
+document.addEventListener('input',e=>{const id=e.target.id||'';const m={'i-number':'number','i-amount':'amount','i-violation':'violation','i-issued':'issued','i-respond':'respond_by','i-location':'location'};
+  if(m[id])CASE.ticket[m[id]]=e.target.value; if(id==='i-account')CASE.owner_account=e.target.value;});
+
+async function go(replay){
+  if(running)return; running=true; CONF[ver]={};
+  const ctx={ms:0,replay:replay?REC['v'+ver]:null,fast:new URLSearchParams(location.search).has('fast')};
+  $('#status').textContent=replay?'Replaying the recorded Claude run…':'Running on Claude…';
+  try{await pipeline(ver,ctx);$('#status').textContent='Done. Step through screens 2–4.';scr='check';}
+  catch(err){$('#status').textContent='Could not reach Claude: '+((err&&err.code)||err);S[ver]=null;}
+  finally{running=false;draw();}
+}
+$('#runBtn').onclick=()=>go(false);
+$('#replayBtn').onclick=()=>go(true);
+draw();
+(async()=>{try{sample=window.claude?await window.claude.use('sample'):null;}catch(e){sample=null;}
+  $('#runBtn').disabled=!sample; $('#replayBtn').disabled=!REC['v'+ver]&&!REC.v1;
+  $('#status').textContent=sample?'Connected to Claude. Run live, or show the recorded run.':'Showing recorded runs. Live runs work when this page is opened on claude.ai.';
+  const q=new URLSearchParams(location.search);if(q.has('auto')){await go(true);const s=q.get('screen');if(s){scr=s;draw();}const c=q.get('confirm');if(c){c.split(',').forEach(n=>CONF[ver][n]=true);draw();}window.__ready=true;}
+})();
+})();
+</script>
+</body>
+</html>

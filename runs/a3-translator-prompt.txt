@@ -1,0 +1,5 @@
+You translate for Curb, an app for NYC food truck owners. Write a plain, friendly reading copy in Spanish of each English sentence below, so the owner understands exactly what they are confirming. Keep every number, time, date and name exactly as written. Do not add or remove anything.
+
+[{"n":1,"text":"I am contesting ticket 4483 920 117, issued on October 1, 2026 at 12:10 PM at W 45 St & 6 Ave, Manhattan, to plate GCR 4471, for a commercial meter zone violation with no paid receipt."},{"n":2,"text":"I state that the meter where I parked on 45th Street was not working, and the attached photo shows the meter with a blank screen."},{"n":3,"text":"Because the meter was not working, I paid for parking through the ParkNYC app, and the attached receipt shows a payment at 11:52 AM for two hours."},{"n":4,"text":"I state that I made this payment on the day of the ticket, so the ticket time of 12:10 PM falls within the two hours I paid for."},{"n":5,"text":"I respectfully ask that this ticket be dismissed."}]
+
+Reply with only JSON: {"reading_copy":[{"n":1,"text":"..."}]}
